@@ -32,15 +32,15 @@
 # 注: 描述文件(metadatd.dsl)参数中不能出现空格
 #
 
-LANG=zh_CN.UTF-8
-
 IFS=$'\n'
 
 #是否是调试状态
-DEBUG=0
+DEBUG=1
 
 #shell执行目录
 PWD=$(pwd)
+
+pwd
 
 #工程目录
 PROJECT_DIR=$(pwd)
@@ -49,14 +49,15 @@ PROJECT_DIR=$(pwd)
 PROJECT_NAME="OnlineEnglishEducate"
 
 #工作目录
-WORK_DIR="$HOME/dgwork"
+WORK_DIR="$HOME/multiple-apk-generator-workspaces"
+
 if [ ${DEBUG} != 0 ];then
-    WORK_DIR="$HOME/Desktop/dgwork"
+    WORK_DIR="$HOME/Desktop/multiple-apk-generator-workspaces"
     clear
 fi
 
 #元数据目录
-METADATD_DIR="${PROJECT_DIR}/dg-resource"
+METADATD_DIR="${PROJECT_DIR}/zz-targets"
 
 #目录apk输出路径
 TARGET_APK_DIR="${METADATD_DIR}/out"
@@ -67,7 +68,57 @@ PROJECT_MIRRORING="${WORK_DIR}/${PROJECT_NAME}"
 #描述文件名
 DSL_FILE_NAME="metadata.dsl"
 
-#插件函数===start
+#===util function start===
+#打印调试日志
+function dlog() {
+    if [ ${DEBUG} != 0 ];then
+         echo $1
+    fi
+}
+
+function log() {
+    if [ ${DEBUG} == 0 ];then
+         echo $1
+    fi
+}
+
+#是否是gradle根项目
+#args  : ${1}: 被检测目录
+#return: 1: yes 0: no
+function is_root_gradle_project() {
+    dlog "is_root_gradle_project |${1}|"
+    if [ -f "${1}/build.gradle" ] && [ -f "${1}/settings.gradle" ];then
+        return 1
+    fi
+    return 0
+}
+
+#是否是gradle项目
+#args  : ${1}: 被检测目录
+#return: 1: yes 0: no
+function is_gradle_project() {
+   if [ -f "${1}/build.gradle" ];then
+        return 1
+   fi
+   return 0
+}
+
+#是否是app的gradle项目
+#args  : ${1}: 被检测目录
+#return: 1: yes 0: no
+function is_app_gradle_project() {
+   if [ -f "${1}/build.gradle" ];
+   then
+        cat "${1}/build.gradle" | grep 'com.android.application' > /dev/null 2>&1
+        if [ $? == 0 ];then
+           return 1
+        fi
+   fi
+   return 0
+}
+#=util function end=
+
+#===plugin function start ===
 
 #替换多个文件中的内容 ${1}: 目标module ${2}: 从这个路径下开始搜索 ${3}: 被替换的内容 ${4}: 目标内容
 function match_all() {
@@ -171,7 +222,7 @@ function package() {
     done
 }
 
-#插件函数===end
+#===plugin function end ===
 
 #生成target  ${1}: 目标名字  ${2}: 源项目
 function generate_target() {
@@ -213,19 +264,6 @@ function generate_target() {
     done
 }
 
-#打印调试日志
-function dlog() {
-    if [ ${DEBUG} != 0 ];then
-         echo $1
-    fi
-}
-
-function log() {
-    if [ ${DEBUG} == 0 ];then
-         echo $1
-    fi
-}
-
 #清理临时文件
 function cleanup() {
     rm -rf $WORK_DIR
@@ -241,54 +279,58 @@ function init_context() {
 
     log "Copying project .... "
     #创建工程镜像
-    cp -r ${PROJECT_DIR} $WORK_DIR
+    cp -r ${PROJECT_DIR} ${WORK_DIR}
 }
 
 dlog "work dir: ${WORK_DIR}"
 
-cleanup
-init_context
+function generate_targets() {
+    cleanup
+    init_context
 
-TARGET_ARRAY=()
-index=1;
-#扫描需要生成的任务
-for file in $(ls $METADATD_DIR)
-  do
-   if [ -d "$METADATD_DIR/$file" ]  && [ $file != 'out' ] ;then
-        #判断是否是有效的模版template(以colze-  或者  comprehension-开头)
-        if [[ $file =~ ^colze_|^comprehension_ ]];then
-            #dlog "$METADATD_DIR/$file"
-            TARGET_ARRAY[$index]=$file
-            index=$((index + 1))
+    TARGET_ARRAY=()
+    index=1;
+    #扫描需要生成的任务
+    for file in $(ls $METADATD_DIR)
+      do
+       if [ -d "$METADATD_DIR/$file" ]  && [ $file != 'out' ] ;then
+            #判断是否是有效的模版template(以colze-  或者  comprehension-开头)
+            if [[ $file =~ ^colze_|^comprehension_ ]];then
+                #dlog "$METADATD_DIR/$file"
+                TARGET_ARRAY[$index]=$file
+                index=$((index + 1))
+            else
+                log "--Warn Invalid template: '$file'.   Must begin with 'cloze-' or 'comprehension-'"
+                exit 1
+            fi
+       fi
+    done
+
+    #执行任务，生成源代码
+    for target in ${TARGET_ARRAY[@]}
+    do
+        generate_target $target ${target%_*}
+    done
+
+    rm -rf ${TARGET_APK_DIR}
+
+    #打包apk
+    for target in ${TARGET_ARRAY[@]}
+    do
+        cd ${PROJECT_MIRRORING}/${target}
+        gradle clean build
+        if [ $? == 0 ];then
+            if [ ! -d ${TARGET_APK_DIR} ];then
+                mkdir -p ${TARGET_APK_DIR}
+            fi
+            cp "${PROJECT_MIRRORING}/${target}/build/outputs/apk/${target}-debug.apk" "${TARGET_APK_DIR}/${target}.apk"
+            log "《《《 genarate apk success ${TARGET_APK_DIR}/${target}.apk"
         else
-            log "--Warn Invalid template: '$file'.   Must begin with 'cloze-' or 'comprehension-'"
-            exit 1
+            log "《《《 genarate apk fail !!!!"
         fi
-   fi
-done
+    done
+    cd ${PWD}
+}
 
-#执行任务，生成源代码
-for target in ${TARGET_ARRAY[@]}
-do
-    generate_target $target ${target%_*}
-done
-
-rm -rf ${TARGET_APK_DIR}
-
-#打包apk
-for target in ${TARGET_ARRAY[@]}
-do
-    cd ${PROJECT_MIRRORING}/${target}
-    gradle clean build
-    if [ $? == 0 ];then
-        if [ ! -d ${TARGET_APK_DIR} ];then
-            mkdir -p ${TARGET_APK_DIR}
-        fi
-        cp "${PROJECT_MIRRORING}/${target}/build/outputs/apk/${target}-debug.apk" "${TARGET_APK_DIR}/${target}.apk"
-        log "《《《 genarate apk success ${TARGET_APK_DIR}/${target}.apk"
-    else
-        log "《《《 genarate apk fail !!!!"
-    fi
-done
-
-cd ${PWD}
+#根据zz-targets目录配置的信息，生成目标apk
+generate_targets
