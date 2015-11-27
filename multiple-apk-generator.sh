@@ -1,10 +1,12 @@
 #!/bin/bash
 
 #
-# author: tongyapeng
-# date  :  2015-11-25
+# Author :  Ya-Peng-Tong
+# Version:  v1.0
+# Github :  https://github.com/typ0520/multiple-apk-generator
+#
 # 使用说明：
-# 1、在dg-resource中新建输出目标相关配置路径，如果是完形填空对应的包文件夹名字是colze-xxx，如果是阅读理解对应的包文件夹名字是comprehension-xxx
+# 1、zz-targets中新建一个保存   输出目标相关配置信息,目标名字(文件夹)是对应的android app gradle
 # 2、在第一步新建的目录下面创建dgconfig.txt，使用规定的描述语言描述输出apk之前做的一些资源替换操作
 # 3、执行此脚本，命令行下cd到项目根目录下(OnlineEnglishEducate)  执行./dynamic-generate.sh
 #
@@ -32,6 +34,7 @@
 # 注: 描述文件(metadatd.dsl)参数中不能出现空格
 #
 
+
 IFS=$'\n'
 
 #是否是调试状态
@@ -40,33 +43,32 @@ DEBUG=1
 #shell执行目录
 PWD=$(pwd)
 
-pwd
-
 #工程目录
-PROJECT_DIR=$(pwd)
+PROJECT_PATH=$(pwd)
 
-#工程名字
-PROJECT_NAME="OnlineEnglishEducate"
+#获取gradle项目根目录名字
+PROJECT_NAME=${PROJECT_PATH##*/}
 
-#工作目录
-WORK_DIR="$HOME/multiple-apk-generator-workspaces"
+#工作目录名字
+WORKSPACE_NAME=".mag-workspace"
 
-if [ ${DEBUG} != 0 ];then
-    WORK_DIR="$HOME/Desktop/multiple-apk-generator-workspaces"
-    clear
-fi
-
-#元数据目录
-METADATD_DIR="${PROJECT_DIR}/zz-targets"
-
-#目录apk输出路径
-TARGET_APK_DIR="${METADATD_DIR}/out"
-
-#工程镜像地址
-PROJECT_MIRRORING="${WORK_DIR}/${PROJECT_NAME}"
+#目标目录名字
+TARGETS_DIR_NAME="zz-targets"
 
 #描述文件名
-DSL_FILE_NAME="metadata.dsl"
+MK_FILE_NAME="makefile"
+
+#工作目录
+WORK_PATH="$HOME/${WORKSPACE_NAME}"
+
+#目标路径
+TARGETS_PATH="${PROJECT_PATH}/${TARGETS_DIR_NAME}"
+
+#目录apk输出路径
+TARGET_APK_PATH="${TARGETS_PATH}/out"
+
+#工程快照
+SNAPSHOT_PATH="${WORK_PATH}/${PROJECT_NAME}"
 
 #===util function start===
 #打印调试日志
@@ -76,10 +78,14 @@ function dlog() {
     fi
 }
 
+#打印日志
 function log() {
-    if [ ${DEBUG} == 0 ];then
-         echo $1
-    fi
+    echo $1
+}
+
+#打印错误信息
+function elog() {
+    echo "--warn, ${1}"
 }
 
 #是否是gradle根项目
@@ -123,7 +129,7 @@ function is_app_gradle_project() {
 #替换多个文件中的内容 ${1}: 目标module ${2}: 从这个路径下开始搜索 ${3}: 被替换的内容 ${4}: 目标内容
 function match_all() {
     dlog "match_all target: ${1},search_root: ${2},src_str: ${3},dest_str: ${4}"
-    search_path="${PROJECT_MIRRORING}/${1}/${2}"
+    search_path="${SNAPSHOT_PATH}/${1}/${2}"
     dlog "search_path: ${search_path}"
 
     find ${search_path} | while read line
@@ -143,7 +149,7 @@ function match_all() {
 #复制文件 ${1}: 目标module  ${2}: 应用的名字
 function app_name() {
     dlog "app_name |${1},${2}"
-    file_path="${PROJECT_MIRRORING}/${1}/src/main/res/values/strings.xml"
+    file_path="${SNAPSHOT_PATH}/${1}/src/main/res/values/strings.xml"
     manifest="src/main/AndroidManifest.xml"
     match_file ${1} ${manifest} "\@string\/app_name" "${2}"
 }
@@ -151,12 +157,12 @@ function app_name() {
 #复制文件 ${1}: 目标module  ${2}: 源文件相对路径 ${3}: 目标文件相对路径
 function copy_file() {
     dlog "copy_file |${1},${2},${3}|"
-    src_file_path="${METADATD_DIR}/${1}/${2}"
-    target_file_path="${PROJECT_MIRRORING}/${1}/${3}"
+    src_file_path="${TARGETS_PATH}/${1}/${2}"
+    target_file_path="${SNAPSHOT_PATH}/${1}/${3}"
 
     dlog "copy_file src_file_path: ${src_file_path}"
     if [ ! -f ${src_file_path} ];then
-        log "--Warn file not found!!  ${src_file_path}"
+        elog "file not found!!  ${src_file_path}"
         exit 1
     fi
     dlog "copy_file target_file_path: ${target_file_path}"
@@ -167,7 +173,7 @@ function copy_file() {
 function replace_line() {
     dlog "replace_line |${1},${2},${3},${4}|"
 
-    file_path="${PROJECT_MIRRORING}/${1}/${2}"
+    file_path="${SNAPSHOT_PATH}/${1}/${2}"
     dlog "replace_line file_path: ${file_path}"
     sed -i.dgtmp "${3}s/.*/${4}/" ${file_path}
     rm "${file_path}.dgtmp" > /dev/null 2>&1
@@ -182,7 +188,7 @@ function match_file() {
     dest_str=${4}
     dlog "match_file target: ${1},target_file: ${target_file},src_str: ${src_str},dest_str: ${dest_str}"
 
-    file_path="${PROJECT_MIRRORING}/${target}/${target_file}"
+    file_path="${SNAPSHOT_PATH}/${target}/${target_file}"
     sed -i.dgtmp "s/${src_str}/${dest_str}/g" ${file_path}
     rm "${file_path}.dgtmp" > /dev/null 2>&1
 }
@@ -194,7 +200,7 @@ function package() {
     package_name=${3}
 
     #目标工程路径
-    target_dir="${PROJECT_MIRRORING}/${target}"
+    target_dir="${SNAPSHOT_PATH}/${target}"
     manifest="src/main/AndroidManifest.xml"
 
     old_package_name=$(cat ${target_dir}/${manifest} | grep "package=\"")
@@ -208,7 +214,7 @@ function package() {
     match_file ${target} ${manifest} "package=\"${old_package_name}\"" "package=\"${package_name}\""
     match_all ${target} "src/main/java" "${old_package_name}.R" "${package_name}.R"
 
-    search_path="${PROJECT_MIRRORING}/${1}/src/main/java"
+    search_path="${SNAPSHOT_PATH}/${1}/src/main/java"
     dlog "search_path: ${search_path}"
 
     #为所有的
@@ -231,15 +237,15 @@ function generate_target() {
     src_project=${2}
     #dlog "target: $target , src_project: $src_project"
     #复制一个以target命名的新项目，以src_project为蓝本
-    dlog "cp  ${PROJECT_MIRRORING}/${src_project}   to  ${PROJECT_MIRRORING}/${target}"
-    cp -r "${PROJECT_MIRRORING}/${src_project}" "${PROJECT_MIRRORING}/${target}"
+    dlog "cp  ${SNAPSHOT_PATH}/${src_project}   to  ${SNAPSHOT_PATH}/${target}"
+    cp -r "${SNAPSHOT_PATH}/${src_project}" "${SNAPSHOT_PATH}/${target}"
     #把新的工程配置添加到settings.gradle
-    echo "include ':${target}'" >> "${PROJECT_MIRRORING}/settings.gradle"
+    echo "include ':${target}'" >> "${SNAPSHOT_PATH}/settings.gradle"
 
-    #判断dsl文件是否存在
-    config_file="${METADATD_DIR}/${target}/${DSL_FILE_NAME}"
+    #判断makefile文件是否存在
+    config_file="${TARGETS_PATH}/${target}/${MK_FILE_NAME}"
     if [ ! -f $config_file ];then
-        log "--Warn config file: 'metadata.dsl' not found   ${config_file}"
+        elog "makefile not found: ${config_file}"
         exit 1;
     fi
 
@@ -266,45 +272,67 @@ function generate_target() {
 
 #清理临时文件
 function cleanup() {
-    rm -rf $WORK_DIR
-    rm -rf ${TARGET_APK_DIR}
-    rm -rf "${PROJECT_DIR}/build"
-    rm -rf "${PROJECT_DIR}/colze/build"
-    rm -rf "${PROJECT_DIR}/comprehension/build"
+    rm -rf $WORK_PATH
+    rm -rf ${TARGET_APK_PATH}
+    rm -rf "${PROJECT_PATH}/build"
+    rm -rf "${PROJECT_PATH}/colze/build"
+    rm -rf "${PROJECT_PATH}/comprehension/build"
 }
 
 function init_context() {
+    dlog "PROJECT_NAME: ${PROJECT_NAME}"
+
     #生成镜像工程目录
-    mkdir -p "$WORK_DIR/${PROJECT_NAME}"
+    mkdir -p "$WORK_PATH/${PROJECT_NAME}"
 
     log "Copying project .... "
     #创建工程镜像
-    cp -r ${PROJECT_DIR} ${WORK_DIR}
+    cp -r ${PROJECT_PATH} ${WORK_PATH}
 }
 
-dlog "work dir: ${WORK_DIR}"
+dlog "work dir: ${WORK_PATH}"
 
 function generate_targets() {
-    cleanup
-    init_context
+    #判断脚本执行的路径是否是gradle工程的根路径
+    is_root_gradle_project ${PROJECT_PATH}
 
+    if [ $? == 0 ];then
+        elog "execution path is not root gradle project(build.gradle or settings.gradle not found)"
+        exit 1
+    fi
+
+    #需要生成的目标数组
     TARGET_ARRAY=()
     index=1;
-    #扫描需要生成的任务
-    for file in $(ls $METADATD_DIR)
+    #扫描需要生成的target
+    for file in $(ls ${TARGETS_PATH})
       do
-       if [ -d "$METADATD_DIR/$file" ]  && [ $file != 'out' ] ;then
-            #判断是否是有效的模版template(以colze-  或者  comprehension-开头)
-            if [[ $file =~ ^colze_|^comprehension_ ]];then
+       if [ -d "$TARGETS_PATH/$file" ]  && [ $file != 'out' ] ;then
+            #判断是否是有效的target名字(以存在的app项目的名字加上下划线开头)
+            is_app_gradle_project ${file%_*}
+
+            if [[ $? == 1 ]];then
                 #dlog "$METADATD_DIR/$file"
+                #检查makefile是否存在
+                if [ ! -f "${TARGETS_PATH}/${file}/${MK_FILE_NAME}" ];then
+                     elog "makefile not found: ${TARGETS_PATH}/${file}/${MK_FILE_NAME}"
+                     exit 1;
+                fi
+
                 TARGET_ARRAY[$index]=$file
                 index=$((index + 1))
             else
-                log "--Warn Invalid template: '$file'.   Must begin with 'cloze-' or 'comprehension-'"
+                elog "invalid target: '$file', '${PROJECT_PATH}/${file%_*}' is not a valid android application gradle project"
                 exit 1
             fi
        fi
     done
+
+    #清理上次生成时遗留的文件
+    cleanup
+
+    #初始化环境
+    init_context
 
     #执行任务，生成源代码
     for target in ${TARGET_ARRAY[@]}
@@ -312,19 +340,19 @@ function generate_targets() {
         generate_target $target ${target%_*}
     done
 
-    rm -rf ${TARGET_APK_DIR}
+    rm -rf ${TARGET_APK_PATH}
 
     #打包apk
     for target in ${TARGET_ARRAY[@]}
     do
-        cd ${PROJECT_MIRRORING}/${target}
+        cd ${SNAPSHOT_PATH}/${target}
         gradle clean build
         if [ $? == 0 ];then
-            if [ ! -d ${TARGET_APK_DIR} ];then
-                mkdir -p ${TARGET_APK_DIR}
+            if [ ! -d ${TARGET_APK_PATH} ];then
+                mkdir -p ${TARGET_APK_PATH}
             fi
-            cp "${PROJECT_MIRRORING}/${target}/build/outputs/apk/${target}-debug.apk" "${TARGET_APK_DIR}/${target}.apk"
-            log "《《《 genarate apk success ${TARGET_APK_DIR}/${target}.apk"
+            cp "${SNAPSHOT_PATH}/${target}/build/outputs/apk/${target}-debug.apk" "${TARGET_APK_PATH}/${target}.apk"
+            log "《《《 genarate apk success ${TARGET_APK_PATH}/${target}.apk"
         else
             log "《《《 genarate apk fail !!!!"
         fi
