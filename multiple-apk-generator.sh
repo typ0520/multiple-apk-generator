@@ -36,10 +36,10 @@
 
 #
 # Next version expect
-# 1、把项目快照存放在项目结构下(方便查看生成的代码是否正确)
-# 2、把target配置的方式由目录改成文件(接入方便)
-# 3、把生成的所有apk全部copy到zz-targets/out目录下
-# 4、生成结果报告
+# 1、把项目快照存放在项目结构下(方便查看生成的代码是否正确)   [ok]
+# 2、把生成的所有apk全部copy到zz-targets/out目录下
+# 3、生成结果报告
+# 4、把target配置的方式由目录改成文件(接入方便)
 #
 
 IFS=$'\n'
@@ -56,17 +56,20 @@ PROJECT_PATH=$(pwd)
 #获取gradle项目根目录名字
 PROJECT_NAME=${PROJECT_PATH##*/}
 
-#工作目录名字
-WORKSPACE_NAME=".mag-workspace"
-
 #目标目录名字
 TARGETS_DIR_NAME="zz-targets"
+
+#工作目录名字
+WORKSPACE_NAME=".${TARGETS_DIR_NAME}-work"
 
 #描述文件名
 MK_FILE_NAME="makefile"
 
 #工作目录
-WORK_PATH="$HOME/${WORKSPACE_NAME}"
+WORK_PATH="${PROJECT_PATH}/${WORKSPACE_NAME}"
+
+#临时文件目录
+TEMP_PATH="${HOME}/${WORKSPACE_NAME}/${PROJECT_NAME}"
 
 #目标路径
 TARGETS_PATH="${PROJECT_PATH}/${TARGETS_DIR_NAME}"
@@ -75,7 +78,7 @@ TARGETS_PATH="${PROJECT_PATH}/${TARGETS_DIR_NAME}"
 TARGET_APK_PATH="${TARGETS_PATH}/out"
 
 #工程快照
-SNAPSHOT_PATH="${WORK_PATH}/${PROJECT_NAME}"
+SNAPSHOT_PATH="${WORK_PATH}/${PROJECT_NAME}-snapshot"
 
 #===util function start===
 #打印调试日志
@@ -277,27 +280,35 @@ function generate_target() {
     done
 }
 
-#清理临时文件
-function cleanup() {
-    rm -rf $WORK_PATH
-    rm -rf ${TARGET_APK_PATH}
-    rm -rf "${PROJECT_PATH}/build"
-    rm -rf "${PROJECT_PATH}/colze/build"
-    rm -rf "${PROJECT_PATH}/comprehension/build"
-}
-
+#初始化上下文
 function init_context() {
-    dlog "PROJECT_NAME: ${PROJECT_NAME}"
+    rm -rf ${WORK_PATH}
+    log "Generating project snapshot .... "
+    #清理项目临时文件
+    gradle clean > /dev/null 2>&1
 
-    #生成镜像工程目录
-    mkdir -p "$WORK_PATH/${PROJECT_NAME}"
+    #如果临时文件路径不存在就创建
+    if [ ! -d ${TEMP_PATH} ];then
+        mkdir -p ${TEMP_PATH}
+    fi
 
-    log "Copying project .... "
-    #创建工程镜像
-    cp -r ${PROJECT_PATH} ${WORK_PATH}
+    #生成项目快照，保存在工作目录
+    cp -r ${PROJECT_PATH} ${TEMP_PATH}
+    mkdir -p ${WORK_PATH}
+    mv ${TEMP_PATH}/${PROJECT_NAME} ${SNAPSHOT_PATH}
+
+    #把工作目录加入到.gitignore
+    if [ -d "${PROJECT_PATH}/.git" ];then
+        if [ ! -f "${PROJECT_PATH}/.gitignore" ];then
+            echo ${WORKSPACE_NAME} > "${PROJECT_PATH}/.gitignore"
+        else
+             cat ${PROJECT_PATH}/.gitignore | grep "${WORKSPACE_NAME}" > /dev/null 2>&1
+             if [ $? == 1 ];then
+                echo ${WORKSPACE_NAME} >> "${PROJECT_PATH}/.gitignore"
+             fi
+        fi
+    fi
 }
-
-dlog "work dir: ${WORK_PATH}"
 
 function generate_targets() {
     #判断脚本执行的路径是否是gradle工程的根路径
@@ -329,22 +340,19 @@ function generate_targets() {
                 TARGET_ARRAY[$index]=$file
                 index=$((index + 1))
             else
-                elog "invalid target: '$file', '${PROJECT_PATH}/${file%_*}' is not a valid android application gradle project"
+                elog "invalid target: '$file', '${PROJECT_PATH}/${file%_*}' is not a valid gradle android application project"
                 exit 1
             fi
        fi
     done
 
-    #清理上次生成时遗留的文件
-    cleanup
-
     #初始化环境
     init_context
 
-    #执行任务，生成源代码
+    #生成各个目标的源代码
     for target in ${TARGET_ARRAY[@]}
     do
-        generate_target $target ${target%_*}
+        generate_target ${target} ${target%_*}
     done
 
     rm -rf ${TARGET_APK_PATH}
