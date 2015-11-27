@@ -37,7 +37,7 @@
 #
 # Next version expect
 # 1、把项目快照存放在项目结构下(方便查看生成的代码是否正确)   [ok]
-# 2、把生成的所有apk全部copy到zz-targets/out目录下
+# 2、把生成的所有apk全部copy到zz-targets/out目录下        [ok]
 # 3、生成结果报告
 # 4、把target配置的方式由目录改成文件(接入方便)
 #
