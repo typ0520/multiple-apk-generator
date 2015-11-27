@@ -34,6 +34,13 @@
 # 注: 描述文件(metadatd.dsl)参数中不能出现空格
 #
 
+#
+# Next version expect
+# 1、把项目快照存放在项目结构下(方便查看生成的代码是否正确)
+# 2、把target配置的方式由目录改成文件(接入方便)
+# 3、把生成的所有apk全部copy到zz-targets/out目录下
+# 4、生成结果报告
+#
 
 IFS=$'\n'
 
