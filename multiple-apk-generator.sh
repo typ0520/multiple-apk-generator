@@ -366,8 +366,12 @@ function generate_targets() {
             if [ ! -d ${TARGET_APK_PATH} ];then
                 mkdir -p ${TARGET_APK_PATH}
             fi
-            cp "${SNAPSHOT_PATH}/${target}/build/outputs/apk/${target}-debug.apk" "${TARGET_APK_PATH}/${target}.apk"
-            log "《《《 genarate apk success ${TARGET_APK_PATH}/${target}.apk"
+
+            ls ${SNAPSHOT_PATH}/${target}/build/outputs/apk | while read line
+            do
+                log ${line}
+                cp "${SNAPSHOT_PATH}/${target}/build/outputs/apk/${line}" ${TARGET_APK_PATH}/${line}
+            done
         else
             log "《《《 genarate apk fail !!!!"
         fi
