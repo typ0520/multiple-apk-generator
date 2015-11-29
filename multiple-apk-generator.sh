@@ -2,17 +2,18 @@
 
 #
 # Author :  Ya-Peng-Tong
-# Version:  v1.0
+# Version:  0.1
 # Github :  https://github.com/typ0520/multiple-apk-generator
 #
 # 使用说明：
-# 1、zz-targets中新建一个保存   输出目标相关配置信息,目标名字(文件夹)是对应的android app gradle
-# 2、在第一步新建的目录下面创建dgconfig.txt，使用规定的描述语言描述输出apk之前做的一些资源替换操作
-# 3、执行此脚本，命令行下cd到项目根目录下(OnlineEnglishEducate)  执行./dynamic-generate.sh
+# 1、在项目根目录下新建zz-targets目录，保存target相关配置
+# 2、zz-targets中新建target文件夹,文件夹名字是(对应的module的名字 + 下划线 + xxxx)
+# 3、在第一步新建的taret目录下面创建makefile文件，使用规定的描述语言描述输出apk之前做的一些资源替换操作
+# 4、在项目根目录执行此脚本  cd ${project_root};  ./multiple-apk-generator.sh
 #
 # 描述语言说明:
 # 1、配置目标生成项目的包名为${1}
-#   packname com.example.comprehension
+#   packname com.example.samples2
 #
 # 2、使用${2}匹配并替换${0}文件中的${1}
 #   match-file src/main/AndroidManifest.xml com.example.comprehension com.example.colze
@@ -27,25 +28,24 @@
 #   replace-line 4 src/main/res/values/strings.xml <string name="app_name">完形填空</string>
 #
 #
-# 注: 最终输出的apk，
+# 注: 最终输出的apk，在zz-targets/out目录下
 # 注: 在描述文件中以#开头的是注释，会被忽略掉
 # 注: 描述语言以行为单位 ，按空格分隔，第一个单词为动作，后面的依次为${1}  ${2}  ${3}  ......
-# 注: 模版文件目录已colze_或者comprehension_开头
-# 注: 描述文件(metadatd.dsl)参数中不能出现空格
+# 注: target目录名字以module的名字加下划线开头，再加上数字或字母(例如: app_1)
+# 注: 描述文件(makefile)参数中不能出现空格
 #
 
 #
 # Next version expect
-# 1、把项目快照存放在项目结构下(方便查看生成的代码是否正确)   [ok]
-# 2、把生成的所有apk全部copy到zz-targets/out目录下        [ok]
-# 3、生成结果报告
-# 4、把target配置的方式由目录改成文件(接入方便)
+# 1、描述语言添加一些环境变量
+# 2、描述语言添加内置函数
+# 3、添加执行shell的插件
 #
 
 IFS=$'\n'
 
 #是否是调试状态
-DEBUG=1
+DEBUG=0
 
 #shell执行目录
 PWD=$(pwd)
@@ -285,7 +285,7 @@ function init_context() {
     rm -rf ${WORK_PATH}
     log "Generating project snapshot .... "
     #清理项目临时文件
-    gradle clean > /dev/null 2>&1
+    #gradle clean > /dev/null 2>&1
 
     #如果临时文件路径不存在就创建
     if [ ! -d ${TEMP_PATH} ];then
@@ -357,26 +357,47 @@ function generate_targets() {
 
     rm -rf ${TARGET_APK_PATH}
 
+    report_file="${TEMP_PATH}/report_file.txt"
+    rm -rf ${report_file};touch ${report_file}
+
+    log 'Generating apk ...'
     #打包apk
     for target in ${TARGET_ARRAY[@]}
     do
         cd ${SNAPSHOT_PATH}/${target}
-        gradle clean build
+        if [ ${DEBUG} == 0 ];then
+            gradle clean build
+        else
+            gradle clean build > /dev/null
+        fi
         if [ $? == 0 ];then
+            echo "Build success  target: ${target}" >> ${report_file}
             if [ ! -d ${TARGET_APK_PATH} ];then
                 mkdir -p ${TARGET_APK_PATH}
             fi
 
+            dlog "Copying apk ..."
             ls ${SNAPSHOT_PATH}/${target}/build/outputs/apk | while read line
             do
-                log ${line}
+                dlog ${line}
                 cp "${SNAPSHOT_PATH}/${target}/build/outputs/apk/${line}" ${TARGET_APK_PATH}/${line}
             done
         else
-            log "《《《 genarate apk fail !!!!"
+            echo "Build fail     target: ${target}" >> ${report_file}
         fi
     done
     cd ${PWD}
+
+    #输出报告
+    log '==== Report ===='
+    log 'All generated apk: '
+    ls ${TARGET_APK_PATH} | while read line
+    do
+         log "   ${line}"
+    done
+
+    echo ''
+    cat ${report_file}
 }
 
 #根据zz-targets目录配置的信息，生成目标apk
