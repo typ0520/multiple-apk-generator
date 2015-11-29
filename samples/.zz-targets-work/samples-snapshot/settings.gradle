@@ -1,0 +1,2 @@
+include ':app', ':library',':app2'
+include ':app_1'

@@ -10,7 +10,7 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="测试项目"
         android:supportsRtl="true"
         android:name=".app.SampleApplication"
         android:theme="@style/AppTheme">

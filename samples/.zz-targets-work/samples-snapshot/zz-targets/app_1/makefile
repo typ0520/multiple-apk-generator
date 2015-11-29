@@ -8,7 +8,7 @@ app_name 测试项目
 copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 
 #把src/main/java目录下所有文件中包含的字符串testString，替换为testString2
-match_all src/main/ testString pretestStringsub
+match_all src/main/java testString pretestStringsub
 
 #把config.java的中的字符串github修改为aagithubbb
 match_file src/main/java/com/example/samples/Config.java github aagithubbb
