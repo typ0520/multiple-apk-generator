@@ -365,7 +365,7 @@ function generate_targets() {
     for target in ${TARGET_ARRAY[@]}
     do
         cd ${SNAPSHOT_PATH}/${target}
-        if [ ${DEBUG} == 0 ];then
+        if [ ${DEBUG} != 0 ];then
             gradle clean build
         else
             gradle clean build > /dev/null
@@ -390,13 +390,14 @@ function generate_targets() {
 
     #输出报告
     log '==== Report ===='
-    log 'All generated apk: '
-    ls ${TARGET_APK_PATH} | while read line
-    do
-         log "   ${line}"
-    done
-
-    echo ''
+    if [ -d ${TARGET_APK_PATH} ];then
+        log 'All generated apk: '
+        ls ${TARGET_APK_PATH} | while read line
+        do
+             log "   ${line}"
+        done
+        echo ''
+    fi
     cat ${report_file}
 }
 
