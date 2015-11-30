@@ -2,7 +2,7 @@
 
 #
 # Author :  Ya-Peng-Tong
-# Version:  0.1-beta
+# Version:  0.1-beta-1
 # Github :  https://github.com/typ0520/multiple-apk-generator
 #
 # 使用说明：
@@ -16,16 +16,16 @@
 #   packname com.example.samples2
 #
 # 2、使用${2}匹配并替换${0}文件中的${1}
-#   match-file src/main/AndroidManifest.xml com.example.comprehension com.example.colze
+#   match-file src/main/AndroidManifest.xml com.example.samples com.example.samples2
 #
 # 3、使用${2}匹配并替换${0}为根目录下的所有文件中的${1}
 #   match-all src/main/java/ com.example.comprehension.R com.example.colze.R
 #
 # 4、使用${1}的对应文件替换${2}对应的文件
-#   copy_file app_icon.png src/main/res/drawable-hdpi/app_icon.png
+#   copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 #
 # 5、#把${2}文件中的第${1}行的内容替换成${2}对应内容
-#   replace-line 4 src/main/res/values/strings.xml <string name="app_name">完形填空</string>
+#   replace-line 4 src/main/res/values/strings.xml '<string name="app_name">完形填空</string>'
 #
 #
 # 注: 最终输出的apk，在zz-targets/out目录下
@@ -38,15 +38,6 @@
 #
 # Change logs
 # 1、修复在某些情况下包名无法修改的情况
-# 2、更改修改app名字的逻辑
-#
-# New features
-# 1、
-#
-# Expect features
-# 1、描述语言添加一些环境变量
-# 2、描述语言添加内置函数
-# 3、添加执行shell的插件
 #
 
 IFS=$'\n'
@@ -222,25 +213,22 @@ function package() {
 
     cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")' > /dev/null 2>&1
     if [ $? != 0 ];then
-        elog "get old package name fail. check your manifest file: ${src_project}/${manifest}"
+        elog "resolve xml error, when get old package name. check your manifest file: ${src_project}/${manifest}"
         exit 1
     fi
+    old_package_string=$(cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")')
 
     old_package_name=$(cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")' | sed 's/[[:space:]]//g')
-    dlog "old_package_name1: ${old_package_name}"
 
     #删除package="及其左边的字符
     old_package_name=${old_package_name#*package=\"}
-    dlog "old_package_name2: ${old_package_name}"
-
     #删除右边双引号
     old_package_name=${old_package_name/\"}
-    dlog "old_package_name3: ${old_package_name}"
 
     log "rename $target package ${old_package_name} to $package_name"
 
     match_file ${target} "build.gradle" ${old_package_name} ${package_name}
-    match_file ${target} ${manifest} "package=\"${old_package_name}\"" "package=\"${package_name}\""
+    match_file ${target} ${manifest} ${old_package_string} "package=\"${package_name}\""
     match_all ${target} "src/main/java" "${old_package_name}.R" "${package_name}.R"
 
     search_path="${SNAPSHOT_PATH}/${1}/src/main/java"
@@ -255,8 +243,6 @@ function package() {
         sed -i.dgtmp "s/${src_str}/${dest_str}/g" ${line} > /dev/null 2>&1
         rm "${line}.dgtmp" > /dev/null 2>&1
     done
-
-    //sed -i.dgtmp -E 's/(package="[.a-zA-Z]{1,}")/package="com.haha.cc"/g' AndroidManifest.xml
 }
 
 #===plugin function end ===
