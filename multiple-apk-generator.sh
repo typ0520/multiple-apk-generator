@@ -157,9 +157,14 @@ function match_all() {
 #复制文件 ${1}: 目标module  ${2}: 应用的名字
 function app_name() {
     dlog "app_name |${1},${2}"
-    file_path="${SNAPSHOT_PATH}/${1}/src/main/res/values/strings.xml"
+    target=${1}
+    appname=${2}
+
     manifest="src/main/AndroidManifest.xml"
-    match_file ${1} ${manifest} "\@string\/app_name" "${2}"
+    log "change app name to: ${appname}"
+    match_file ${target} ${manifest} "@string/app_name" "${appname}"
+
+    exit 1
 }
 
 #复制文件 ${1}: 目标module  ${2}: 源文件相对路径 ${3}: 目标文件相对路径
