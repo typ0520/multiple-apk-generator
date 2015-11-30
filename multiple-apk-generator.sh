@@ -36,7 +36,14 @@
 #
 
 #
-# Next version expect
+# Change logs
+# 1、修复在某些情况下包名无法修改的情况
+# 2、更改修改app名字的逻辑
+#
+# New features
+# 1、
+#
+# Expect features
 # 1、描述语言添加一些环境变量
 # 2、描述语言添加内置函数
 # 3、添加执行shell的插件
@@ -45,7 +52,7 @@
 IFS=$'\n'
 
 #是否是调试状态
-DEBUG=0
+DEBUG=1
 
 #shell执行目录
 PWD=$(pwd)
@@ -213,10 +220,22 @@ function package() {
     target_dir="${SNAPSHOT_PATH}/${target}"
     manifest="src/main/AndroidManifest.xml"
 
-    old_package_name=$(cat ${target_dir}/${manifest} | grep "package=\"")
-    old_package_name=${old_package_name/package=\"/}
+    cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")' > /dev/null 2>&1
+    if [ $? != 0 ];then
+        elog "get old package name fail. check your manifest file: ${src_project}/${manifest}"
+        exit 1
+    fi
+
+    old_package_name=$(cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")' | sed 's/[[:space:]]//g')
+    dlog "old_package_name1: ${old_package_name}"
+
+    #删除package="及其左边的字符
+    old_package_name=${old_package_name#*package=\"}
+    dlog "old_package_name2: ${old_package_name}"
+
+    #删除右边双引号
     old_package_name=${old_package_name/\"}
-    old_package_name=$(echo ${old_package_name} | sed -e 's/\(^ *\)//' -e 's/\( *$\)//')
+    dlog "old_package_name3: ${old_package_name}"
 
     log "rename $target package ${old_package_name} to $package_name"
 
@@ -236,6 +255,8 @@ function package() {
         sed -i.dgtmp "s/${src_str}/${dest_str}/g" ${line} > /dev/null 2>&1
         rm "${line}.dgtmp" > /dev/null 2>&1
     done
+
+    //sed -i.dgtmp -E 's/(package="[.a-zA-Z]{1,}")/package="com.haha.cc"/g' AndroidManifest.xml
 }
 
 #===plugin function end ===
