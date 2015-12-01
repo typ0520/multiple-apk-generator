@@ -2,7 +2,7 @@
 
 #
 # Author :  Ya-Peng-Tong
-# Version:  0.2-beta-1
+# Version:  0.2-beta-2
 # Github :  https://github.com/typ0520/multiple-apk-generator
 #
 # 使用说明：
