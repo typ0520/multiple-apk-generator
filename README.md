@@ -61,9 +61,10 @@ replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 >描述语言内置常量
 
 ``` 
-  ${src}可以代替    src/main/java
-  ${res}可以代替    src/main/res
-  ${assets}可以代替 src/main/assets
+   ${src}      代替 src/main/java
+   ${res}      代替 src/main/res
+   ${assets}   代替 src/main/assets
+   ${space}    代替 空格
 ``` 
 
 >注意事项
@@ -72,4 +73,4 @@ replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 2. 在描述文件中以#开头的是注释，会被忽略掉
 3. 描述语言以行为单位 ，按空格分隔，第一个单词为动作，后面的依次为${1}  ${2}  ${3}  ......
 4. target目录名字以module的名字加下划线开头，再加上数字或字母(例如: app_1)
-5. 描述文件(makefile)参数中不能出现空格
+5. 描述文件(makefile)参数中如果需要使用空格，用${space}代替

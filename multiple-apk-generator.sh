@@ -31,15 +31,16 @@
 #   replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 #
 # 描述语言内置常量:
-#   ${src}可以代替    src/main/java
-#   ${res}可以代替    src/main/res
-#   ${assets}可以代替 src/main/assets
+#   ${src}      代替 src/main/java
+#   ${res}      代替 src/main/res
+#   ${assets}   代替 src/main/assets
+#   ${space}    代替 空格
 #
 # 注: 最终输出的apk，在zz-targets/out目录下
 # 注: 在描述文件中以#开头的是注释，会被忽略掉
 # 注: 描述语言以行为单位 ，按空格分隔，第一个单词为动作，后面的依次为${1}  ${2}  ${3}  ......
 # 注: target目录名字以module的名字加下划线开头，再加上数字或字母(例如: app_1)
-# 注: 描述文件(makefile)参数中不能出现空格
+# 注: 描述文件(makefile)参数中如果需要使用空格，用${space}代替
 #
 
 #
@@ -54,12 +55,13 @@
 # >> 0.2-beta-1
 # 1、zz-targets目录下可以添加ignore目录，把暂时不需要打包的target资源移动到这个目录
 # 2、添加内置变量 ${src} ${res} ${assets}
+# 3、添加对参数中需要加空格的处理逻辑,使用${space}代替空格
 #
 
 IFS=$'\n'
 
 #是否是调试状态
-DEBUG=1
+DEBUG=0
 
 #shell执行目录
 PWD=$(pwd)
@@ -193,12 +195,29 @@ function copy_file() {
 
 #替换指定行内容
 function replace_line() {
-    dlog "replace_line |${1},${2},${3},${4}|"
-
+    target=${1}
     file_path="${SNAPSHOT_PATH}/${1}/${2}"
+    line_num=${3}
+    target_string=${4}
+    dlog "replace_line |${1},${2},${3},${4}|"
     dlog "replace_line file_path: ${file_path}"
-    sed -i.zztmp "${3}s/.*/${4}/" ${file_path}
-    rm "${file_path}.zztmp" > /dev/null 2>&1
+
+    temp_file="${file_path}.zztmp"
+    dlog "replace_line head -n $((${line_num} - 1))"
+    head -n $((${line_num} - 1)) ${file_path} > ${temp_file}
+
+    total_line_num=$(cat -n ${file_path} | tail -n1 | awk '{print $1}')
+    remain_line_num=$((${total_line_num} - ${line_num}))
+
+    dlog "replace_line total_line_num: ${total_line_num} ,remain_line_num: ${remain_line_num}"
+    #替换转义字符
+
+    echo ${target_string} | sed -e 's/${space}/ /g' >> ${temp_file}
+    tail -n ${remain_line_num} ${file_path} >> ${temp_file}
+
+    cat ${temp_file} > ${file_path}
+
+    rm "${temp_file}" > /dev/null 2>&1
 }
 
 #替换单体文件中的内容 ${1}: 目标module  ${2}: 目标文件相对路径 ${3}: 被替换的内容 ${4}: 目标内容
@@ -267,7 +286,7 @@ function pretreatment_makefile() {
     #替换环境变量
     env_var_key_array=("\${src}" "\${res}" "\${assets}")
     env_var_value_array=("src\/main\/java" "src\/main\/res" "src\/main\/assets")
-    dlog ">> start pretreatment makefile... "
+    dlog "pretreatment_makefile: ${1}"
 
     index=0
     for key in ${env_var_key_array[@]}
@@ -279,8 +298,6 @@ function pretreatment_makefile() {
         rm "${makefile}.zztmp" #> /dev/null 2>&1
         index=$((index + 1))
     done
-    dlog "pretreatment_makefile: ${1}"
-    kill -9 $$
 }
 
 #生成target  ${1}: 目标名字  ${2}: 源项目
