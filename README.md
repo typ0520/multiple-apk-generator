@@ -57,6 +57,15 @@ replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 
 
 ``` 
+
+>描述语言内置常量
+
+``` 
+  ${src}可以代替    src/main/java
+  ${res}可以代替    src/main/res
+  ${assets}可以代替 src/main/assets
+``` 
+
 >注意事项
 
 1. 最终输出的apk，在zz-targets/out目录下

@@ -30,6 +30,10 @@
 # 6、#把${2}文件中的第${1}行的内容替换成${2}对应内容
 #   replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 #
+# 描述语言内置常量:
+#   ${src}可以代替    src/main/java
+#   ${res}可以代替    src/main/res
+#   ${assets}可以代替 src/main/assets
 #
 # 注: 最终输出的apk，在zz-targets/out目录下
 # 注: 在描述文件中以#开头的是注释，会被忽略掉
@@ -39,10 +43,9 @@
 #
 
 #
-# Change logs
+# Change logs:
 # >> 0.1-beta-1
 # 1、修复在某些情况下包名无法修改的情况
-# ======
 #
 # >> 0.1-beta-2
 # 1、修改快照保存路径到项目根目录下名字为.zz-project-snapshot的目录，方便比对生成的项目代码是否正确
@@ -50,12 +53,13 @@
 #
 # >> 0.2-beta-1
 # 1、zz-targets目录下可以添加ignore目录，把暂时不需要打包的target资源移动到这个目录
+# 2、添加内置变量 ${src} ${res} ${assets}
 #
 
 IFS=$'\n'
 
 #是否是调试状态
-DEBUG=0
+DEBUG=1
 
 #shell执行目录
 PWD=$(pwd)
@@ -257,6 +261,28 @@ function package() {
 
 #===plugin function end ===
 
+#预处理makefile
+function pretreatment_makefile() {
+    makefile=${1}
+    #替换环境变量
+    env_var_key_array=("\${src}" "\${res}" "\${assets}")
+    env_var_value_array=("src\/main\/java" "src\/main\/res" "src\/main\/assets")
+    dlog ">> start pretreatment makefile... "
+
+    index=0
+    for key in ${env_var_key_array[@]}
+    do
+        val=${env_var_value_array[index]}
+        dlog "key: ${key},val: ${val}"
+
+        sed -i.zztmp "s/${key}/${val}/g" ${makefile} #> /dev/null 2>&1
+        rm "${makefile}.zztmp" #> /dev/null 2>&1
+        index=$((index + 1))
+    done
+    dlog "pretreatment_makefile: ${1}"
+    kill -9 $$
+}
+
 #生成target  ${1}: 目标名字  ${2}: 源项目
 function generate_target() {
     dlog "generate_target |${1},${2}|"
@@ -276,6 +302,9 @@ function generate_target() {
         exit 1;
     fi
 
+    #预处理makefile
+    pretreatment_makefile ${config_file}
+
     #解析并执行描述文件
     #获取配置的包名
     package_name=$(cat "$config_file"| grep 'package' | awk '{print $2}')
@@ -291,7 +320,6 @@ function generate_target() {
             if [ "$action" != "package" ];then
                 #调用插件对应的函数并传参
                 dlog "《《《 ${line/$action/$target}"
-                #配置环境变量
                 "$action" ${target} $(echo $line | awk '{print $2}') $(echo $line | awk '{print $3}') $(echo $line | awk '{print $4}') $(echo $line | awk '{print $5}')
             fi
         fi
