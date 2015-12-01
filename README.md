@@ -55,6 +55,8 @@ copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 #把src/main/assets/test.txt文件的第5行内容替换成replace-line5ffgdg
 replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 
+#参数3的内容如果包含空格使用${space}代替
+replace_line ${res}/values/strings.xml 6 <string${space}name="prompt_email">multiple-apk-generator</string>
 
 ``` 
 
