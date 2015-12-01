@@ -40,6 +40,9 @@ package com.example.samples2
 #修改app的名字
 app_name 测试项目
 
+#修改服务器地址(全局字符串替换)
+match_all /src/main/ www.baidu.com www.google.com
+
 #把src/main/目录下所有文件中包含的字符串testString，替换为testString2(使用这个可以完成渠道号替换或者服务器地址替换)
 match_all src/main/ testString pretestStringsub
 

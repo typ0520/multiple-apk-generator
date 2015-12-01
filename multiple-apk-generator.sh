@@ -2,7 +2,7 @@
 
 #
 # Author :  Ya-Peng-Tong
-# Version:  0.1-beta-2
+# Version:  0.2-beta-1
 # Github :  https://github.com/typ0520/multiple-apk-generator
 #
 # 使用说明：
@@ -47,6 +47,9 @@
 # >> 0.1-beta-2
 # 1、修改快照保存路径到项目根目录下名字为.zz-project-snapshot的目录，方便比对生成的项目代码是否正确
 # 2、targets读取路径改成从快照目录下读取
+#
+# >> 0.2-beta-1
+# 1、zz-targets目录下可以添加ignore目录，把暂时不需要打包的target资源移动到这个目录
 #
 
 IFS=$'\n'
@@ -340,7 +343,7 @@ function generate_targets() {
     #扫描需要生成的target
     for file in $(ls "${PROJECT_PATH}/${TARGETS_DIR_NAME}")
       do
-       if [ -d "${PROJECT_PATH}/${TARGETS_DIR_NAME}/$file" ]  && [ $file != 'out' ] ;then
+       if [ -d "${PROJECT_PATH}/${TARGETS_DIR_NAME}/$file" ]  && [ $file != 'out' ] && [ $file != 'ignore' ] ;then
             #判断是否是有效的target名字(以存在的app项目的名字加上下划线开头)
             is_app_gradle_project ${file%_*}
 
@@ -380,18 +383,18 @@ function generate_targets() {
     for target in ${TARGET_ARRAY[@]}
     do
         cd ${SNAPSHOT_PATH}/${target}
-        if [ ${DEBUG} != 0 ];then
+        #if [ ${DEBUG} != 0 ];then
             gradle clean build
-        else
-            gradle clean build > /dev/null
-        fi
+        #else
+        #   gradle clean build > /dev/null
+        #fi
         if [ $? == 0 ];then
             echo "Build success  target: ${target}" >> ${report_file}
             if [ ! -d ${TARGET_APK_PATH} ];then
                 mkdir -p ${TARGET_APK_PATH}
             fi
 
-            dlog "Copying apk ..."
+            dlog "Copying apk with gradle ..."
             ls ${SNAPSHOT_PATH}/${target}/build/outputs/apk | while read line
             do
                 dlog ${line}
