@@ -7,8 +7,11 @@ app_name 测试项目
 #复制文件(如果对应的文件存在就覆盖掉)
 copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 
-#把src/main/java目录下所有文件中包含的字符串testString，替换为testString2
+#把src/main/目录下所有文件中包含的字符串testString，替换为testString2
 match_all src/main/ testString pretestStringsub
 
 #把config.java的中的字符串github修改为aagithubbb
 match_file src/main/java/com/example/samples/Config.java github aagithubbb
+
+#把src/main/assets/test.txt文件的第5行内容替换成replace-line5ffgdg
+replace_line src/main/assets/test.txt 5 replace-line5ffgdg

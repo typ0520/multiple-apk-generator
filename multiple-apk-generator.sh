@@ -8,7 +8,7 @@
 # 使用说明：
 # 1、在项目根目录下新建zz-targets目录，保存target相关配置
 # 2、zz-targets中新建target文件夹,文件夹名字是(对应的module的名字 + 下划线 + xxxx)
-# 3、在第一步新建的taret目录下面创建makefile文件，使用规定的描述语言描述输出apk之前做的一些资源替换操作
+# 3、在第一步新建的target目录下面创建makefile文件，使用规定的描述语言描述输出apk之前做的一些资源替换操作
 # 4、在项目根目录执行此脚本  cd ${project_root};  ./multiple-apk-generator.sh
 #
 # 描述语言说明:
@@ -25,7 +25,7 @@
 #   copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 #
 # 5、#把${2}文件中的第${1}行的内容替换成${2}对应内容
-#   replace-line 4 src/main/res/values/strings.xml '<string name="app_name">完形填空</string>'
+#   replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 #
 #
 # 注: 最终输出的apk，在zz-targets/out目录下
