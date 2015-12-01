@@ -10,4 +10,6 @@ public class Config {
     public static final String s4 = "testString-4";
 
     public static final String s5 = "github";
+
+    public static final String devServel = "http://www.baidu.com";
 }

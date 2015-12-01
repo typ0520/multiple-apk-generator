@@ -1,6 +1,6 @@
 ## multiple-apk-generator简介
 ---- 
-* 解决android apk的批量打包,支持渠道号替换(字符串替换)、资源替换、指定文件修改、修改包名
+* 解决android apk的批量打包,支持渠道号替换或者服务器地址替换(字符串替换)、资源替换、指定文件修改、修改包名
 * 轻量级: 使用shell脚本编写，方便开发者修改实现逻辑
 * 基于gradle打包apk
 
@@ -40,14 +40,14 @@ package com.example.samples2
 #修改app的名字
 app_name 测试项目
 
-#复制文件(如果对应的文件存在就覆盖掉)
-copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
-
-#把src/main/目录下所有文件中包含的字符串testString，替换为testString2
+#把src/main/目录下所有文件中包含的字符串testString，替换为testString2(使用这个可以完成渠道号替换或者服务器地址替换)
 match_all src/main/ testString pretestStringsub
 
 #把config.java的中的字符串github修改为aagithubbb
 match_file src/main/java/com/example/samples/Config.java github aagithubbb
+
+#复制文件(如果对应的文件存在就覆盖掉)
+copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 
 #把src/main/assets/test.txt文件的第5行内容替换成replace-line5ffgdg
 replace_line src/main/assets/test.txt 5 replace-line5ffgdg

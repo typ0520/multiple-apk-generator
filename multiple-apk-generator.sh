@@ -2,7 +2,7 @@
 
 #
 # Author :  Ya-Peng-Tong
-# Version:  0.1-beta-1
+# Version:  0.1-beta-2
 # Github :  https://github.com/typ0520/multiple-apk-generator
 #
 # 使用说明：
@@ -15,16 +15,19 @@
 # 1、配置目标生成项目的包名为${1}
 #   packname com.example.samples2
 #
-# 2、使用${2}匹配并替换${0}文件中的${1}
+# 2、修改app的名字
+#   app_name 测试项目
+#
+# 3、把src/main/目录下所有文件中包含的字符串testString，替换为testString2(使用这个可以完成渠道号替换或者服务器地址替换)
+#   match_all src/main/ testString pretestStringsub
+#
+# 4、使用${2}匹配并替换${0}文件中的${1}
 #   match-file src/main/AndroidManifest.xml com.example.samples com.example.samples2
 #
-# 3、使用${2}匹配并替换${0}为根目录下的所有文件中的${1}
-#   match-all src/main/java/ com.example.comprehension.R com.example.colze.R
-#
-# 4、使用${1}的对应文件替换${2}对应的文件
+# 5、使用${1}的对应文件替换${2}对应的文件
 #   copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 #
-# 5、#把${2}文件中的第${1}行的内容替换成${2}对应内容
+# 6、#把${2}文件中的第${1}行的内容替换成${2}对应内容
 #   replace_line src/main/assets/test.txt 5 replace-line5ffgdg
 #
 #
@@ -37,13 +40,19 @@
 
 #
 # Change logs
+# >> 0.1-beta-1
 # 1、修复在某些情况下包名无法修改的情况
+# ======
+#
+# >> 0.1-beta-2
+# 1、修改快照保存路径到项目根目录下名字为.zz-project-snapshot的目录，方便比对生成的项目代码是否正确
+# 2、targets读取路径改成从快照目录下读取
 #
 
 IFS=$'\n'
 
 #是否是调试状态
-DEBUG=1
+DEBUG=0
 
 #shell执行目录
 PWD=$(pwd)
@@ -57,26 +66,23 @@ PROJECT_NAME=${PROJECT_PATH##*/}
 #目标目录名字
 TARGETS_DIR_NAME="zz-targets"
 
-#工作目录名字
-WORKSPACE_NAME=".${TARGETS_DIR_NAME}-work"
-
 #描述文件名
 MK_FILE_NAME="makefile"
 
-#工作目录
-WORK_PATH="${PROJECT_PATH}/${WORKSPACE_NAME}"
-
 #临时文件目录
-TEMP_PATH="${HOME}/${WORKSPACE_NAME}/${PROJECT_NAME}"
-
-#目标路径
-TARGETS_PATH="${PROJECT_PATH}/${TARGETS_DIR_NAME}"
+TEMP_PATH="${HOME}/.${TARGETS_DIR_NAME}-work/${PROJECT_NAME}"
 
 #目录apk输出路径
-TARGET_APK_PATH="${TARGETS_PATH}/out"
+TARGET_APK_PATH="${PROJECT_PATH}/${TARGETS_DIR_NAME}/out"
+
+#工程快照名字
+SNAPSHOT_NAME=".zz-project-snapshot"
 
 #工程快照
-SNAPSHOT_PATH="${WORK_PATH}/${PROJECT_NAME}-snapshot"
+SNAPSHOT_PATH="${PROJECT_PATH}/${SNAPSHOT_NAME}"
+
+#target保存路径
+TARGETS_PATH="${SNAPSHOT_PATH}/${TARGETS_DIR_NAME}"
 
 #===util function start===
 #打印调试日志
@@ -148,8 +154,8 @@ function match_all() {
             if [ $? == 0 ];then
                   dlog "match_all : ${line}"
             fi
-            sed -i.dgtmp "s/${3}/${4}/g" ${line}
-            rm "${line}.dgtmp"  > /dev/null 2>&1
+            sed -i.zztmp "s/${3}/${4}/g" ${line}
+            rm "${line}.zztmp"  > /dev/null 2>&1
         fi
     done
 }
@@ -165,6 +171,7 @@ function app_name() {
 #复制文件 ${1}: 目标module  ${2}: 源文件相对路径 ${3}: 目标文件相对路径
 function copy_file() {
     dlog "copy_file |${1},${2},${3}|"
+
     src_file_path="${TARGETS_PATH}/${1}/${2}"
     target_file_path="${SNAPSHOT_PATH}/${1}/${3}"
 
@@ -183,8 +190,8 @@ function replace_line() {
 
     file_path="${SNAPSHOT_PATH}/${1}/${2}"
     dlog "replace_line file_path: ${file_path}"
-    sed -i.dgtmp "${3}s/.*/${4}/" ${file_path}
-    rm "${file_path}.dgtmp" > /dev/null 2>&1
+    sed -i.zztmp "${3}s/.*/${4}/" ${file_path}
+    rm "${file_path}.zztmp" > /dev/null 2>&1
 }
 
 #替换单体文件中的内容 ${1}: 目标module  ${2}: 目标文件相对路径 ${3}: 被替换的内容 ${4}: 目标内容
@@ -197,8 +204,8 @@ function match_file() {
     dlog "match_file target: ${1},target_file: ${target_file},src_str: ${src_str},dest_str: ${dest_str}"
 
     file_path="${SNAPSHOT_PATH}/${target}/${target_file}"
-    sed -i.dgtmp "s/${src_str}/${dest_str}/g" ${file_path}
-    rm "${file_path}.dgtmp" > /dev/null 2>&1
+    sed -i.zztmp "s/${src_str}/${dest_str}/g" ${file_path}
+    rm "${file_path}.zztmp" > /dev/null 2>&1
 }
 
 #替换项目包名
@@ -234,14 +241,14 @@ function package() {
     search_path="${SNAPSHOT_PATH}/${1}/src/main/java"
     dlog "search_path: ${search_path}"
 
-    #为所有的
+    #为所有的java文件添加对R文件的引用
     find ${search_path} -name '*.java' | while read line
     do
         src_str=$(cat ${line} | grep 'package')
         dest_str="${src_str}import ${package_name}.R;"
 
-        sed -i.dgtmp "s/${src_str}/${dest_str}/g" ${line} > /dev/null 2>&1
-        rm "${line}.dgtmp" > /dev/null 2>&1
+        sed -i.zztmp "s/${src_str}/${dest_str}/g" ${line} > /dev/null 2>&1
+        rm "${line}.zztmp" > /dev/null 2>&1
     done
 }
 
@@ -279,8 +286,9 @@ function generate_target() {
         if [ "$line" != "" ] && [ "${line:0:1}" != '#' ];then
             action=$(echo $line | awk '{print $1}')
             if [ "$action" != "package" ];then
-                #调用动作对应的c函数并传参
+                #调用插件对应的函数并传参
                 dlog "《《《 ${line/$action/$target}"
+                #配置环境变量
                 "$action" ${target} $(echo $line | awk '{print $2}') $(echo $line | awk '{print $3}') $(echo $line | awk '{print $4}') $(echo $line | awk '{print $5}')
             fi
         fi
@@ -289,7 +297,8 @@ function generate_target() {
 
 #初始化上下文
 function init_context() {
-    rm -rf ${WORK_PATH}
+    #删除上次的快照
+    rm -rf ${SNAPSHOT_PATH}
     log "Generating project snapshot .... "
     #清理项目临时文件
     #gradle clean > /dev/null 2>&1
@@ -301,17 +310,16 @@ function init_context() {
 
     #生成项目快照，保存在工作目录
     cp -r ${PROJECT_PATH} ${TEMP_PATH}
-    mkdir -p ${WORK_PATH}
     mv ${TEMP_PATH}/${PROJECT_NAME} ${SNAPSHOT_PATH}
 
     #把工作目录加入到.gitignore
     if [ -d "${PROJECT_PATH}/.git" ];then
         if [ ! -f "${PROJECT_PATH}/.gitignore" ];then
-            echo ${WORKSPACE_NAME} > "${PROJECT_PATH}/.gitignore"
+            echo ${SNAPSHOT_NAME} > "${PROJECT_PATH}/.gitignore"
         else
-             cat ${PROJECT_PATH}/.gitignore | grep "${WORKSPACE_NAME}" > /dev/null 2>&1
+             cat ${PROJECT_PATH}/.gitignore | grep "${SNAPSHOT_NAME}" > /dev/null 2>&1
              if [ $? == 1 ];then
-                echo ${WORKSPACE_NAME} >> "${PROJECT_PATH}/.gitignore"
+                echo ${SNAPSHOT_NAME} >> "${PROJECT_PATH}/.gitignore"
              fi
         fi
     fi
@@ -330,17 +338,17 @@ function generate_targets() {
     TARGET_ARRAY=()
     index=1;
     #扫描需要生成的target
-    for file in $(ls ${TARGETS_PATH})
+    for file in $(ls "${PROJECT_PATH}/${TARGETS_DIR_NAME}")
       do
-       if [ -d "$TARGETS_PATH/$file" ]  && [ $file != 'out' ] ;then
+       if [ -d "${PROJECT_PATH}/${TARGETS_DIR_NAME}/$file" ]  && [ $file != 'out' ] ;then
             #判断是否是有效的target名字(以存在的app项目的名字加上下划线开头)
             is_app_gradle_project ${file%_*}
 
             if [[ $? == 1 ]];then
                 #dlog "$METADATD_DIR/$file"
                 #检查makefile是否存在
-                if [ ! -f "${TARGETS_PATH}/${file}/${MK_FILE_NAME}" ];then
-                     elog "makefile not found: ${TARGETS_PATH}/${file}/${MK_FILE_NAME}"
+                if [ ! -f "${PROJECT_PATH}/${TARGETS_DIR_NAME}/${file}/${MK_FILE_NAME}" ];then
+                     elog "makefile not found: ${PROJECT_PATH}/${TARGETS_DIR_NAME}/${file}/${MK_FILE_NAME}"
                      exit 1;
                 fi
 

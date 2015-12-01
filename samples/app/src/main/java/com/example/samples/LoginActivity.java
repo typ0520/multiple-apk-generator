@@ -13,6 +13,10 @@ public class LoginActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        String url = "http://www.baidu.com";
+
+        //网络请求
     }
 
 }

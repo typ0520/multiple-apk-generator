@@ -33,5 +33,5 @@ proguard/
 
 # Log Files
 *.log
-samples-snapshot
-./samples/.zz-targets-work
+.zz-project-snapshot
+./samples/.zz-project-snapshot
