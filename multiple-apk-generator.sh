@@ -27,8 +27,8 @@
 # 5、使用${1}的对应文件替换${2}对应的文件
 #   copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
 #
-# 6、#把${2}文件中的第${1}行的内容替换成${2}对应内容
-#   replace_line src/main/assets/test.txt 5 replace-line5ffgdg
+# 6、#把${2}文件中的第${1}行的内容替换成${2}对应内容(参数3的内容如果包含空格使用${space}代替)
+#   replace_line ${res}/values/strings.xml 6 <string${space}name="prompt_email">multiple-apk-generator</string>
 #
 # 描述语言内置常量:
 #   ${src}      代替 src/main/java
@@ -56,6 +56,9 @@
 # 1、zz-targets目录下可以添加ignore目录，把暂时不需要打包的target资源移动到这个目录
 # 2、添加内置变量 ${src} ${res} ${assets}
 # 3、添加对参数中需要加空格的处理逻辑,使用${space}代替空格
+#
+# >> 0.2-beta-2
+# 1、更换修改app名字的逻辑，以前需要app的名字配置为@string/app_name，现在没有这个限制了
 #
 
 IFS=$'\n'
@@ -172,9 +175,12 @@ function match_all() {
 #复制文件 ${1}: 目标module  ${2}: 应用的名字
 function app_name() {
     dlog "app_name |${1},${2}"
-    file_path="${SNAPSHOT_PATH}/${1}/src/main/res/values/strings.xml"
-    manifest="src/main/AndroidManifest.xml"
-    match_file ${1} ${manifest} "\@string\/app_name" "${2}"
+    file_path="${SNAPSHOT_PATH}/${1}/src/main/AndroidManifest.xml"
+    manifest_doc=$(cat ${file_path} | tr -d '\n')
+    application_node=$(echo ${manifest_doc} | grep -o -E '(<application[^>]{1,}>)')
+    application_node_target=$(echo ${application_node} | sed -E "s/(android:label=\"[^\"]{1,}\")/android:label=\"${2}\"/g")
+    manifest_doc=${manifest_doc/${application_node}/${application_node_target}}
+    echo ${manifest_doc} > ${file_path}
 }
 
 #复制文件 ${1}: 目标module  ${2}: 源文件相对路径 ${3}: 目标文件相对路径

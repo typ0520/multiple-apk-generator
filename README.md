@@ -1,13 +1,14 @@
+##交流平台
+----
+欢迎大家参与进来完善这个项目，如果你在使用过程中碰到问题或者有改进建议,可以加群联系我们
+.QQ群: 438565109
+
 ## multiple-apk-generator简介
 ---- 
 * 解决android apk的批量打包,支持渠道号替换或者服务器地址替换(字符串替换)、资源替换、指定文件修改、修改包名
 * 轻量级: 使用shell脚本编写，方便开发者修改实现逻辑
 * 基于gradle打包apk
-
-欢迎大家参与进来完善这个项目，如果你在使用过程中碰到问题或者有改进建议可以给我发邮件
-php12345@163.com
  
-
 ## 使用说明
 ----
 注: 需要依赖shell环境，mac和linux可以直接使用；如果是windows需要装模拟linux环境的shell工具(xshell、cygwin)
@@ -40,20 +41,17 @@ package com.example.samples2
 #修改app的名字
 app_name 测试项目
 
-#修改服务器地址(全局字符串替换)
-match_all /src/main/ www.baidu.com www.google.com
+#复制文件(如果对应的文件存在就覆盖掉)
+copy_file app_icon.png ${res}/drawable-hdpi/ic_launcher.png
 
-#把src/main/目录下所有文件中包含的字符串testString，替换为testString2(使用这个可以完成渠道号替换或者服务器地址替换)
-match_all src/main/ testString pretestStringsub
+#(全局字符串替换)把src/main/目录下所有文件中包含的字符串testString，替换为testString2(可用于替换渠道号、服务器地址)
+match_all src/main testString pretestStringsub
 
 #把config.java的中的字符串github修改为aagithubbb
-match_file src/main/java/com/example/samples/Config.java github aagithubbb
-
-#复制文件(如果对应的文件存在就覆盖掉)
-copy_file app_icon.png src/main/res/drawable-hdpi/ic_launcher.png
+match_file ${src}/com/example/samples/Config.java github multiple-apk-generator
 
 #把src/main/assets/test.txt文件的第5行内容替换成replace-line5ffgdg
-replace_line src/main/assets/test.txt 5 replace-line5ffgdg
+replace_line ${assets}/test.txt 5 multiple-apk-generator
 
 #参数3的内容如果包含空格使用${space}代替
 replace_line ${res}/values/strings.xml 6 <string${space}name="prompt_email">multiple-apk-generator</string>
