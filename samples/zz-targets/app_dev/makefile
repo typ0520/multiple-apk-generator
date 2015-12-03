@@ -7,7 +7,7 @@
 #   ${space}    代替 空格
 
 #修改目标包名
-package com.example.samples2
+#package com.example.samples2
 
 #修改app的名字
 app_name 测试项目

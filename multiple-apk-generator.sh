@@ -60,6 +60,7 @@
 # >> 0.2-beta-2
 # 1、修改更换app名字的逻辑，以前需要app的名字配置为@string/app_name，现在没有这个限制了
 # 2、暂时不需要打包的target，可以把名字放在zz-targets下面的.zzignore文件中
+# 3、解决makefile未配置修改包名时，也会执行package动作的问题
 #
 
 IFS=$'\n'
@@ -332,12 +333,6 @@ function generate_target() {
     pretreatment_makefile ${config_file}
 
     #解析并执行描述文件
-    #获取配置的包名
-    package_name=$(cat "$config_file"| grep 'package' | awk '{print $2}')
-    package_name=${package_name:="com.example.${target}"}
-    dlog "==package: ${package_name}"
-    package $target $src_project $package_name
-
     cat $config_file | while read line
     do
         line=$(echo $line)
@@ -347,6 +342,10 @@ function generate_target() {
                 #调用插件对应的函数并传参
                 dlog "《《《 ${line/$action/$target}"
                 "$action" ${target} $(echo $line | awk '{print $2}') $(echo $line | awk '{print $3}') $(echo $line | awk '{print $4}') $(echo $line | awk '{print $5}')
+            else
+                #调用插件对应的函数并传参
+                dlog "《《《 ${line/$action/$target}"
+                "$action" ${target} ${src_project} $(echo $line | awk '{print $2}') $(echo $line | awk '{print $3}') $(echo $line | awk '{print $4}') $(echo $line | awk '{print $5}')
             fi
         fi
     done
@@ -406,7 +405,6 @@ function generate_targets() {
                 is_app_gradle_project ${file%_*}
 
                 if [[ $? == 1 ]];then
-                    #dlog "$METADATD_DIR/$file"
                     #检查makefile是否存在
                     if [ ! -f "${PROJECT_PATH}/${TARGETS_DIR_NAME}/${file}/${MK_FILE_NAME}" ];then
                          elog "makefile not found: ${PROJECT_PATH}/${TARGETS_DIR_NAME}/${file}/${MK_FILE_NAME}"
@@ -442,11 +440,7 @@ function generate_targets() {
     for target in ${TARGET_ARRAY[@]}
     do
         cd ${SNAPSHOT_PATH}/${target}
-        #if [ ${DEBUG} != 0 ];then
-            gradle clean build
-        #else
-        #   gradle clean build > /dev/null
-        #fi
+        gradle clean build
         if [ $? == 0 ];then
             echo "Build success  target: ${target}" >> ${report_file}
             if [ ! -d ${TARGET_APK_PATH} ];then
