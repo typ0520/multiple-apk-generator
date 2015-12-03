@@ -398,8 +398,10 @@ function generate_targets() {
     for file in $(ls "${PROJECT_PATH}/${TARGETS_DIR_NAME}")
       do
        if [ -d "${PROJECT_PATH}/${TARGETS_DIR_NAME}/$file" ]  && [ $file != 'out' ] && [ $file != 'ignore' ] ;then
-            cat "${PROJECT_PATH}/${TARGETS_DIR_NAME}/.zzignore"  2> /dev/null  | grep "${file}" 2>&1 /dev/null
-            if [ $? == 1 ];then
+            cat "${PROJECT_PATH}/${TARGETS_DIR_NAME}/.zzignore"  2> /dev/null  | grep "${file}" > /dev/null
+            skip=$?
+
+            if [ ! -f ${zzignore_file} ] || [ ${skip} == 1 ];then
                 #判断是否是有效的target名字(以存在的app项目的名字加上下划线开头)
                 is_app_gradle_project ${file%_*}
 
