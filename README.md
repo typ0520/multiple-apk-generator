@@ -74,3 +74,4 @@ replace_line ${res}/values/strings.xml 6 <string${space}name="prompt_email">mult
 3. 描述语言以行为单位 ，按空格分隔，第一个单词为动作，后面的依次为${1}  ${2}  ${3}  ......
 4. target目录名字以module的名字加下划线开头，再加上数字或字母(例如: app_1)
 5. 描述文件(makefile)参数中如果需要使用空格，用${space}代替
+6. 暂时不需要打包的target，可以把名字放在zz-targets下面的.zzignore文件中
