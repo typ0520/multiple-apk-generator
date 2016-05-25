@@ -252,40 +252,20 @@ function package() {
 
     #目标工程路径
     target_dir="${SNAPSHOT_PATH}/${target}"
-    manifest="src/main/AndroidManifest.xml"
 
-    cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")' > /dev/null 2>&1
+    cat "${target_dir}/build.gradle" | grep applicationId | awk '{print $2}' > /dev/null 2>&1
     if [ $? != 0 ];then
-        elog "resolve xml error, when get old package name. check your manifest file: ${src_project}/${manifest}"
+        elog "resolve old package error, when get old package name. check your build.gradle applicationId"
         exit 1
     fi
-    old_package_string=$(cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")')
 
-    old_package_name=$(cat ${target_dir}/${manifest} | grep -o -E '(package\s{0,}=\s{0,}"[.a-zA-Z]{1,}")' | sed 's/[[:space:]]//g')
-
-    #删除package="及其左边的字符
-    old_package_name=${old_package_name#*package=\"}
-    #删除右边双引号
-    old_package_name=${old_package_name/\"}
+    old_package_name=$(cat "${target_dir}/build.gradle" | grep applicationId | awk '{print $2}')
+    old_package_name=${old_package_name#*\"}
+    old_package_name=${old_package_name%\"*}
 
     log "rename $target package ${old_package_name} to $package_name"
 
     match_file ${target} "build.gradle" ${old_package_name} ${package_name}
-    match_file ${target} ${manifest} ${old_package_string} "package=\"${package_name}\""
-    match_all ${target} "src/main/java" "${old_package_name}.R" "${package_name}.R"
-
-    search_path="${SNAPSHOT_PATH}/${1}/src/main/java"
-    dlog "search_path: ${search_path}"
-
-    #为所有的java文件添加对R文件的引用
-    find ${search_path} -name '*.java' | while read line
-    do
-        src_str=$(cat ${line} | grep 'package')
-        dest_str="${src_str}import ${package_name}.R;"
-
-        sed -i.zztmp "s/${src_str}/${dest_str}/g" ${line} > /dev/null 2>&1
-        rm "${line}.zztmp" > /dev/null 2>&1
-    done
 }
 
 #===plugin function end ===
