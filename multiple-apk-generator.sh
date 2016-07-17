@@ -300,6 +300,7 @@ function generate_target() {
     dlog "cp  ${SNAPSHOT_PATH}/${src_project}   to  ${SNAPSHOT_PATH}/${target}"
     cp -r "${SNAPSHOT_PATH}/${src_project}" "${SNAPSHOT_PATH}/${target}"
     #把新的工程配置添加到settings.gradle
+    echo " " >> "${SNAPSHOT_PATH}/settings.gradle"
     echo "include ':${target}'" >> "${SNAPSHOT_PATH}/settings.gradle"
 
     #判断makefile文件是否存在
@@ -420,7 +421,7 @@ function generate_targets() {
     for target in ${TARGET_ARRAY[@]}
     do
         cd ${SNAPSHOT_PATH}/${target}
-        gradle clean build
+        gradle clean assembleRelease
         if [ $? == 0 ];then
             echo "Build success  target: ${target}" >> ${report_file}
             if [ ! -d ${TARGET_APK_PATH} ];then
