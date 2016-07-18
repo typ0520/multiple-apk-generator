@@ -356,6 +356,7 @@ function init_context() {
         else
              cat ${PROJECT_PATH}/.gitignore | grep "${SNAPSHOT_NAME}" > /dev/null 2>&1
              if [ $? == 1 ];then
+                echo " " >> "${PROJECT_PATH}/.gitignore"
                 echo ${SNAPSHOT_NAME} >> "${PROJECT_PATH}/.gitignore"
              fi
         fi
