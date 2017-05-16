@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Author :  Ya-Peng-Tong
+# Author :  typ0520
 # Version:  0.2-beta-2
 # Github :  https://github.com/typ0520/multiple-apk-generator
 #
